@@ -21,7 +21,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	indexer := index.NewIndexer(fullIndexDir + "/master.index")
+	indexer := indexing.NewIndexer(fullIndexDir + "/master.index")
 
 	for _, f := range files {
 		if !f.IsDir() {
@@ -29,7 +29,7 @@ func main() {
 		}
 
 		start := time.Now()
-		r := repos.NewRepo("github.com/"+f.Name(), repoPath+"/"+f.Name())
+		r := repos.NewRepo("github.com/"+f.Name(), repoPath+f.Name())
 		if err := indexer.Index(r); err != nil {
 			log.Fatal(err)
 		}

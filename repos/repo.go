@@ -32,7 +32,7 @@ func (r *repo) Name() string {
 		return r.webURL
 	}
 	ru := []rune(r.webURL)
-	return string(ru[idx:])
+	return string(ru[idx+1:])
 }
 func (*repo) CloneToDisk() error {
 	return nil

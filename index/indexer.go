@@ -1,4 +1,4 @@
-package index
+package indexing
 
 import (
 	"github.com/google/codesearch/index"
@@ -35,7 +35,7 @@ func (i *indexer) Index(r repos.Repo) error {
 		return errors.Errorf("indexing %s failed since it has empty diskPath\n", r.Name())
 	}
 
-	indexFullpath := r.DiskPath() + r.Name() + ".index" + strconv.Itoa((int)(time.Now().Unix()))
+	indexFullpath := r.DiskPath() + "/" + r.Name() + ".index" + strconv.Itoa((int)(time.Now().Unix()))
 	ixWriter := index.Create(indexFullpath)
 	defer func() {
 		if err := os.Remove(indexFullpath); err != nil {
@@ -64,13 +64,11 @@ func (i *indexer) Index(r repos.Repo) error {
 	if _, err := os.Stat(i.masterIndexpath); err == nil {
 		//if master DOES exists
 		index.Merge(indexFullpath+"@", i.masterIndexpath, indexFullpath)
-		if err := os.Rename(indexFullpath+"@", i.masterIndexpath); err != nil {
-			return errors.Wrapf(err, "failed to rename %s to %s \n", indexFullpath+"@", i.masterIndexpath)
-		}
 	} else {
-		if err := copyFileContents(indexFullpath, i.masterIndexpath); err != nil {
-			return errors.Wrapf(err, "failed to copy %s to %s \n", indexFullpath, i.masterIndexpath)
-		}
+		index.Merge(indexFullpath+"@", indexFullpath, indexFullpath)
+	}
+	if err := os.Rename(indexFullpath+"@", i.masterIndexpath); err != nil {
+		return errors.Wrapf(err, "failed to rename %s to %s \n", indexFullpath+"@", i.masterIndexpath)
 	}
 
 	return nil

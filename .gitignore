@@ -1,3 +1,4 @@
 .vscode
+storage/*
 vendor
 .DS_Store
