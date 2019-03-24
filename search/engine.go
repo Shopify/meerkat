@@ -1,12 +1,19 @@
 package search
 
-type SearchEngine struct {
+import "github.com/google/codesearch/regexp"
+
+type FileSearcher interface {
+	// searches a regex inside filepath and writes results in resChan, returns number of hits
+	Search(filePath string, grep *regexp.Grep, resChan chan *FileSearchResult) int
+}
+
+type SearchEngine interface {
+	Search(*Query)
 }
 
 type Query struct {
-}
-
-type Filter struct {
-	fileTypes    []string
-	repositories []string
+	TermPatten    string
+	FilePattern   string
+	CaseSensitive bool
+	BruteForce    bool
 }
