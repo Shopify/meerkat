@@ -1,21 +1,24 @@
 package indexing
 
 import (
-	"github.com/google/codesearch/index"
-	"github.com/karrick/godirwalk"
-	"github.com/meerkat/repos"
-	"github.com/pkg/errors"
 	"io"
 	"log"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/google/codesearch/index"
+	"github.com/google/codesearch/regexp"
+	"github.com/karrick/godirwalk"
+	"github.com/meerkat/repos"
+	"github.com/pkg/errors"
+
 	"os"
 )
 
 type Indexer interface {
 	Index(r repos.Repo) error
+	Search(regex string) ([]string, error)
 }
 
 type indexer struct {
@@ -27,6 +30,69 @@ func NewIndexer(masterIndexFilePath string) Indexer {
 	return &indexer{
 		masterIndexpath: masterIndexFilePath,
 	}
+}
+
+func (i *indexer) Search(reQuery string) ([]string, error) {
+	g := regexp.Grep{
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+	}
+	g.AddFlags()
+
+	pat := "(?m)" + reQuery
+	iFlag := false     //case insensitive
+	fFlag := ""        //file pattern
+	bruteFlag := false //brute force - search all files in index
+	if iFlag {
+		pat = "(?i)" + pat
+	}
+	re, err := regexp.Compile(pat)
+	if err != nil {
+		return nil, errors.Wrap(err, "search failed, failed to compile input regex, must be valid re2")
+	}
+	g.Regexp = re
+	var fre *regexp.Regexp
+	if fFlag != "" {
+		fre, err = regexp.Compile(fFlag)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	q := index.RegexpQuery(re.Syntax)
+
+	ix := index.Open(i.masterIndexpath)
+	ix.Verbose = false
+	var post []uint32
+	if bruteFlag {
+		post = ix.PostingQuery(&index.Query{Op: index.QAll})
+	} else {
+		post = ix.PostingQuery(q)
+	}
+
+	log.Printf("post query identified %d possible files\n", len(post))
+
+	if fre != nil {
+		fnames := make([]uint32, 0, len(post))
+
+		for _, fileid := range post {
+			name := ix.Name(fileid)
+			if fre.MatchString(name, true, true) < 0 {
+				continue
+			}
+			fnames = append(fnames, fileid)
+		}
+
+		log.Printf("filename regexp matched %d files\n", len(fnames))
+
+		post = fnames
+	}
+
+	for _, fileid := range post {
+		name := ix.Name(fileid)
+		g.File(name)
+	}
+
+	return nil, nil
 }
 
 //Index is concurrent safe

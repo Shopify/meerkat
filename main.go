@@ -1,17 +1,14 @@
 package main
 
 import (
-	"fmt"
-	"github.com/meerkat/index"
-	"github.com/meerkat/repos"
-	"io/ioutil"
 	"log"
 	"path/filepath"
-	"time"
+
+	indexing "github.com/meerkat/index"
 )
 
 func main() {
-	repoPath := "/Users/behrooz/go/src/github.com/"
+	/*repoPath := "/Users/behrooz/go/src/github.com/"
 	files, err := ioutil.ReadDir(repoPath)
 	if err != nil {
 		log.Fatal(err)
@@ -36,5 +33,13 @@ func main() {
 		fmt.Println("Indexed: ", f.Name(), " in ", time.Since(start))
 	}
 
-	fmt.Printf("\n🎉fully indexed everything🔥\n")
+	fmt.Printf("\n🎉fully indexed everything🔥\n")*/
+
+	fullIndexDir, err := filepath.Abs("./storage/")
+	if err != nil {
+		log.Fatal(err)
+	}
+	indexer := indexing.NewIndexer(fullIndexDir + "/master.index")
+	indexer.Search(".*Username.*")
+
 }

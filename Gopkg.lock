@@ -2,10 +2,11 @@
 
 
 [[projects]]
-  digest = "1:67fe95cf2b09bd22df0d04957afd193066331e317224f2cdbe104d3ad282a8b5"
+  digest = "1:182448a87b7664e4ba839a53515fe858c1b7248b36dab488c61fe897d0c86843"
   name = "github.com/google/codesearch"
   packages = [
     "index",
+    "regexp",
     "sparse",
   ]
   pruneopts = "UT"
@@ -33,6 +34,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/google/codesearch/index",
+    "github.com/google/codesearch/regexp",
     "github.com/karrick/godirwalk",
     "github.com/pkg/errors",
   ]
