@@ -1,14 +1,18 @@
 package main
 
 import (
+	"fmt"
+	"github.com/meerkat/repos"
+	"io/ioutil"
 	"log"
 	"path/filepath"
+	"time"
 
 	indexing "github.com/meerkat/index"
 )
 
-func main() {
-	/*repoPath := "/Users/behrooz/go/src/github.com/"
+func index() {
+	repoPath := "/Users/behrooz/go/src/github.com/"
 	files, err := ioutil.ReadDir(repoPath)
 	if err != nil {
 		log.Fatal(err)
@@ -20,6 +24,7 @@ func main() {
 	}
 	indexer := indexing.NewIndexer(fullIndexDir + "/master.index")
 
+	s := time.Now()
 	for _, f := range files {
 		if !f.IsDir() {
 			continue
@@ -33,13 +38,19 @@ func main() {
 		fmt.Println("Indexed: ", f.Name(), " in ", time.Since(start))
 	}
 
-	fmt.Printf("\n🎉fully indexed everything🔥\n")*/
+	fmt.Printf("\n🎉fully indexed everything in: %s🔥\n", time.Since(s))
+}
 
+func search() {
 	fullIndexDir, err := filepath.Abs("./storage/")
 	if err != nil {
 		log.Fatal(err)
 	}
 	indexer := indexing.NewIndexer(fullIndexDir + "/master.index")
-	indexer.Search(".*Username.*")
+	indexer.Search(".*SHOPIFY.*")
+}
 
+func main() {
+	//index()
+	search()
 }

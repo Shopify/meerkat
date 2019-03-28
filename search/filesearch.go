@@ -4,14 +4,19 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/google/codesearch/regexp"
 )
 
-type FileSearchResult struct {
-	filePath string
-	lineNo   int
-	line     string
+func file(g *regexp.Grep, name string) {
+	f, err := os.Open(name)
+	if err != nil {
+		fmt.Fprintf(g.Stderr, "%s\n", err)
+		return
+	}
+	defer f.Close()
+	g.Reader(f, name)
 }
 
 func resultProcessor(g *regexp.Grep, r io.Reader, name string) {

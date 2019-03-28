@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -18,14 +19,23 @@ import (
 	"os"
 )
 
+const filePatternsNotToIndex = `/.git/`
+
+type FileSearchResult struct {
+	filePath string
+	lineNo   int
+	line     string
+}
+
 type Indexer interface {
 	Index(r repos.Repo) error
-	Search(regex string) ([]string, error)
+	Search(regex string) ([]*FileSearchResult, error)
 }
 
 type indexer struct {
 	masterIndexpath string
 	mergeMutex      sync.Mutex
+	matchMutex      sync.Mutex
 }
 
 func NewIndexer(masterIndexFilePath string) Indexer {
@@ -34,17 +44,20 @@ func NewIndexer(masterIndexFilePath string) Indexer {
 	}
 }
 
-func (i *indexer) Search(reQuery string) ([]string, error) {
+func (i *indexer) Search(reQuery string) ([]*FileSearchResult, error) {
 	g := regexp.Grep{
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
 	}
-	g.AddFlags()
+	g.L = false //"list matching files only")
+	g.C = false //"print match counts only")
+	g.N = true  //"n", false, "show line numbers")
+	g.H = false //"omit file names"
 
 	pat := "(?m)" + reQuery
-	iFlag := false     //case insensitive
-	fFlag := ""        //file pattern
-	bruteFlag := false //brute force - search all files in index
+	iFlag := false                                              //case insensitive
+	fFlag := "^/Users/behrooz/go/src/github.com/Shopify/ivm/.*" //file pattern
+	bruteFlag := false                                          //brute force - search all files in index
 	if iFlag {
 		pat = "(?i)" + pat
 	}
@@ -88,29 +101,45 @@ func (i *indexer) Search(reQuery string) ([]string, error) {
 
 		post = fnames
 	}
+	resChan := make(chan *FileSearchResult, 999999999)
+	var wg = sync.WaitGroup{}
+	for _, fileID := range post {
+		wg.Add(1)
+		go func(fid uint32) {
+			name := ix.Name(fid)
+			i.file(&g, name, resChan)
+			wg.Done()
+		}(fileID)
+	}
+	go func() {
+		wg.Wait()
+		close(resChan)
+	}()
 
-	for _, fileid := range post {
-		name := ix.Name(fileid)
-		g.File(name)
+	for r := range resChan {
+		fmt.Println(r.filePath, ":", r.lineNo, "", r.line)
 	}
 
 	return nil, nil
 }
 
-func (i *indexer) resultProcessor(g *regexp.Grep, r io.Reader, name string) {
+func (i *indexer) file(g *regexp.Grep, name string, resChan chan *FileSearchResult) error {
+	f, err := os.Open(name)
+	if err != nil {
+		return errors.Wrap(err, "file open failed")
+	}
+	defer f.Close()
+	return i.resultProcessor(g, f, name, resChan)
+}
+
+func (i *indexer) resultProcessor(g *regexp.Grep, r io.Reader, name string, resChan chan *FileSearchResult) error {
 	var nl = []byte{'\n'}
 	var (
-		buf        = make([]byte, 1<<20)
-		needLineno = g.N
-		lineno     = 1
-		count      = 0
-		prefix     = ""
-		beginText  = true
-		endText    = false
+		buf       = make([]byte, 1<<20)
+		lineno    = 1
+		beginText = true
+		endText   = false
 	)
-	if !g.H {
-		prefix = name + ":"
-	}
 	for {
 		n, err := io.ReadFull(r, buf[len(buf):cap(buf)])
 		buf = buf[:len(buf)+n]
@@ -125,43 +154,33 @@ func (i *indexer) resultProcessor(g *regexp.Grep, r io.Reader, name string) {
 		}
 		chunkStart := 0
 		for chunkStart < end {
-			m1 := g.Regexp.Match(buf[chunkStart:end], beginText, endText) + chunkStart
+			i.matchMutex.Lock()
+			m1 := g.Regexp.Match(buf[chunkStart:end], beginText, endText) + chunkStart //not concurrent-safe
+			i.matchMutex.Unlock()
 			beginText = false
 			if m1 < chunkStart {
 				break
 			}
 			g.Match = true
-			if g.L {
-				fmt.Fprintf(g.Stdout, "%s\n", name)
-				return
-			}
 			lineStart := bytes.LastIndex(buf[chunkStart:m1], nl) + 1 + chunkStart
 			lineEnd := m1 + 1
 			if lineEnd > end {
 				lineEnd = end
 			}
-			if needLineno {
-				lineno += countNL(buf[chunkStart:lineStart])
-			}
+			lineno += countNL(buf[chunkStart:lineStart])
 			line := buf[lineStart:lineEnd]
-			nl := ""
-			if len(line) == 0 || line[len(line)-1] != '\n' {
-				nl = "\n"
+
+			resChan <- &FileSearchResult{
+				filePath: name,
+				line:     string(line),
+				lineNo:   lineno,
 			}
-			switch {
-			case g.C:
-				count++
-			case g.N:
-				fmt.Fprintf(g.Stdout, "%s%d:%s%s", prefix, lineno, line, nl)
-			default:
-				fmt.Fprintf(g.Stdout, "%s%s%s", prefix, line, nl)
-			}
-			if needLineno {
-				lineno++
-			}
+
+			lineno++
+
 			chunkStart = lineEnd
 		}
-		if needLineno && err == nil {
+		if err == nil {
 			lineno += countNL(buf[chunkStart:end])
 		}
 		n = copy(buf, buf[end:])
@@ -173,9 +192,8 @@ func (i *indexer) resultProcessor(g *regexp.Grep, r io.Reader, name string) {
 			break
 		}
 	}
-	if g.C && count > 0 {
-		fmt.Fprintf(g.Stdout, "%s: %d\n", name, count)
-	}
+
+	return nil
 }
 
 func countNL(b []byte) int {
@@ -208,7 +226,7 @@ func (i *indexer) Index(r repos.Repo) error {
 	ixWriter.AddPaths([]string{r.DiskPath()})
 	if err := godirwalk.Walk(r.DiskPath(), &godirwalk.Options{
 		Callback: func(osPathname string, de *godirwalk.Dirent) error {
-			if !de.IsRegular() {
+			if !de.IsRegular() || strings.Contains(osPathname, filePatternsNotToIndex) {
 				return nil
 			}
 			ixWriter.AddFile(osPathname)
