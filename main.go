@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+	//"github.com/google/go-github/github"
 	"github.com/meerkat/repos"
 	"io/ioutil"
 	"log"
 	"path/filepath"
+	//"sync"
 	"time"
 
 	indexing "github.com/meerkat/index"
@@ -52,19 +54,35 @@ func search() {
 
 func main() {
 	//index()
-	//search()
-	absStoragePath, err := filepath.Abs("./storage/")
+	search()
+	/*absStoragePath, err := filepath.Abs("./storage/")
 	if err != nil {
 		log.Fatal(err)
 	}
+	indexer := indexing.NewIndexer(absStoragePath + "/master.index")
+
 	allRepos, err := repos.LoadAllGHRepos()
 	fmt.Println("load ", len(allRepos), " from github, going to clone them...")
+	var wg sync.WaitGroup
 	for _, r := range allRepos {
-		g, err := repos.NewGithubRepo(r, absStoragePath)
-		if err != nil {
-			fmt.Println("failed to clone:", err)
-			return
-		}
-		fmt.Println("Clone done for ", g.Name())
+		wg.Add(1)
+		go func(repo *github.Repository) {
+
+			g, err := repos.NewGithubRepo(repo, absStoragePath)
+			if err != nil {
+				fmt.Println("failed to clone:", err)
+				return
+			}
+
+			r := repos.NewRepo(*repo.CloneURL, g.DiskPath())
+			if err := indexer.Index(r); err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Println("Cloned and indexed done for ", g.Name())
+
+			wg.Done()
+		}(r)
 	}
+	wg.Wait()*/
 }

@@ -55,9 +55,9 @@ func (i *indexer) Search(reQuery string) ([]*FileSearchResult, error) {
 	g.H = false //"omit file names"
 
 	pat := "(?m)" + reQuery
-	iFlag := false                                              //case insensitive
-	fFlag := "^/Users/behrooz/go/src/github.com/Shopify/ivm/.*" //file pattern
-	bruteFlag := false                                          //brute force - search all files in index
+	iFlag := false     //case insensitive
+	fFlag := ""        //"^/Users/behrooz/go/src/github.com/Shopify/ivm/.*" //file pattern
+	bruteFlag := false //brute force - search all files in index
 	if iFlag {
 		pat = "(?i)" + pat
 	}

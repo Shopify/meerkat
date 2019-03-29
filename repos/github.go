@@ -9,8 +9,8 @@ import (
 	//git "gopkg.in/src-d/go-git.v4"
 	//"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 	"log"
+	"os"
 	"os/exec"
-	//"os"
 	"strings"
 )
 
@@ -60,7 +60,7 @@ func NewGithubRepo(r *github.Repository, absoluteStorageDirPath string) (*Github
 	}
 
 	directory := strings.TrimSuffix(absoluteStorageDirPath, "/") + "/" + *r.FullName
-	fmt.Println("cloneing:", *r.SSHURL)
+	fmt.Println("cloneing:", *r.CloneURL)
 	/*_, err := git.PlainClone(directory, false, &git.CloneOptions{
 		// The intended use of a GitHub personal access token is in replace of your password
 		// because access tokens can easily be revoked.
@@ -69,14 +69,21 @@ func NewGithubRepo(r *github.Repository, absoluteStorageDirPath string) (*Github
 			Username: "whatever", // yes, this can be anything except an empty string
 			Password: "05303fba719627b0853c53b93a24de679938ef5f",
 		},
-		URL: *r.CloneURL,
+		URL:  *r.CloneURL,
+		Tags: git.NoTags,
 		//Progress: os.Stdout,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "creating new repo failed")
 	}*/
-	cmd := exec.Command("git", "clone", *r.SSHURL, absoluteStorageDirPath)
+	cmd := exec.Command("git", "clone", *r.CloneURL, absoluteStorageDirPath+"/"+*r.FullName)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 	err := cmd.Run()
+	if err != nil {
+		log.Fatalf("cmd.Run() failed with %s\n", err)
+	}
+
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, err
@@ -90,4 +97,8 @@ func NewGithubRepo(r *github.Repository, absoluteStorageDirPath string) (*Github
 
 func (g *GithubRepo) Name() string {
 	return *g.r.FullName
+}
+
+func (g *GithubRepo) DiskPath() string {
+	return g.cloneAbsPath
 }
