@@ -52,5 +52,7 @@ func search() {
 
 func main() {
 	//index()
-	search()
+	//search()
+	//repos.NewGithubRepo()
+	repos.CloneToDisk()
 }

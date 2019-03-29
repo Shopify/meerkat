@@ -40,3 +40,7 @@
 [[constraint]]
   name = "github.com/karrick/godirwalk"
   version = "1.8.0"
+
+[[constraint]]
+  name = "github.com/google/go-github"
+  version = "24.0.1"

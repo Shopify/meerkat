@@ -1,4 +1,7 @@
 .vscode
-storage/*
 vendor
 .DS_Store
+# exclude everything
+storage/*
+# exception to the rule
+!storage/.gitkeep 
