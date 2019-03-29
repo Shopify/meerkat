@@ -53,6 +53,18 @@ func search() {
 func main() {
 	//index()
 	//search()
-	//repos.NewGithubRepo()
-	repos.CloneToDisk()
+	absStoragePath, err := filepath.Abs("./storage/")
+	if err != nil {
+		log.Fatal(err)
+	}
+	allRepos, err := repos.LoadAllGHRepos()
+	fmt.Println("load ", len(allRepos), " from github, going to clone them...")
+	for _, r := range allRepos {
+		g, err := repos.NewGithubRepo(r, absStoragePath)
+		if err != nil {
+			fmt.Println("failed to clone:", err)
+			return
+		}
+		fmt.Println("Clone done for ", g.Name())
+	}
 }

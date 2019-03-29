@@ -4,17 +4,22 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/go-github/github"
+	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
-	git "gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
-	"os"
+	//git "gopkg.in/src-d/go-git.v4"
+	//"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
+	"log"
+	"os/exec"
+	//"os"
+	"strings"
 )
 
 type GithubRepo struct {
-	r *github.Repository
+	r            *github.Repository
+	cloneAbsPath string
 }
 
-func NewGithubRepo() error {
+func LoadAllGHRepos() ([]*github.Repository, error) {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: "05303fba719627b0853c53b93a24de679938ef5f"},
@@ -31,7 +36,8 @@ func NewGithubRepo() error {
 	for {
 		repos, resp, err := client.Repositories.ListByOrg(ctx, "Shopify", opt)
 		if err != nil {
-			return err
+			log.Println(err)
+			continue
 		}
 		allRepos = append(allRepos, repos...)
 		if resp.NextPage == 0 {
@@ -39,15 +45,23 @@ func NewGithubRepo() error {
 		}
 		opt.Page = resp.NextPage
 		fmt.Println("appended:", len(repos), " total:", len(allRepos))
+		break
 	}
-	for _, r := range allRepos {
-		fmt.Println(*r.CloneURL)
-	}
-	return nil
+
+	return allRepos, nil
 }
 
-func CloneToDisk() error {
-	_, err := git.PlainClone("./storage/liquid", false, &git.CloneOptions{
+func NewGithubRepo(r *github.Repository, absoluteStorageDirPath string) (*GithubRepo, error) {
+	if r.FullName == nil {
+		return nil, errors.New("nil fullname " + r.String())
+	}
+	if r.CloneURL == nil {
+		return nil, errors.New("nil cloneURL " + r.String())
+	}
+
+	directory := strings.TrimSuffix(absoluteStorageDirPath, "/") + "/" + *r.FullName
+	fmt.Println("cloneing:", *r.SSHURL)
+	/*_, err := git.PlainClone(directory, false, &git.CloneOptions{
 		// The intended use of a GitHub personal access token is in replace of your password
 		// because access tokens can easily be revoked.
 		// https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
@@ -55,12 +69,25 @@ func CloneToDisk() error {
 			Username: "whatever", // yes, this can be anything except an empty string
 			Password: "05303fba719627b0853c53b93a24de679938ef5f",
 		},
-		URL:      "https://github.com/Shopify/liquid.git",
-		Progress: os.Stdout,
+		URL: *r.CloneURL,
+		//Progress: os.Stdout,
 	})
 	if err != nil {
-		fmt.Println("boom:", err)
-		return err
+		return nil, errors.Wrap(err, "creating new repo failed")
+	}*/
+	cmd := exec.Command("git", "clone", *r.SSHURL, absoluteStorageDirPath)
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, err
 	}
-	return nil
+
+	return &GithubRepo{
+		cloneAbsPath: directory,
+		r:            r,
+	}, nil
+}
+
+func (g *GithubRepo) Name() string {
+	return *g.r.FullName
 }
