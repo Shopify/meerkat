@@ -14,6 +14,8 @@ import (
 	"strings"
 )
 
+const GHAccessToken = "DUMMY_TOKEN"
+
 type GithubRepo struct {
 	r            *github.Repository
 	cloneAbsPath string
@@ -22,7 +24,7 @@ type GithubRepo struct {
 func LoadAllGHRepos() ([]*github.Repository, error) {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: "05303fba719627b0853c53b93a24de679938ef5f"},
+		&oauth2.Token{AccessToken: GHAccessToken},
 	)
 	tc := oauth2.NewClient(ctx, ts)
 
@@ -30,7 +32,7 @@ func LoadAllGHRepos() ([]*github.Repository, error) {
 
 	// list all repositories for the authenticated user
 	opt := &github.RepositoryListByOrgOptions{
-		ListOptions: github.ListOptions{PerPage: 1000},
+		ListOptions: github.ListOptions{PerPage: 100},
 	}
 	var allRepos []*github.Repository
 	for {
@@ -44,7 +46,6 @@ func LoadAllGHRepos() ([]*github.Repository, error) {
 			break
 		}
 		opt.Page = resp.NextPage
-		fmt.Println("appended:", len(repos), " total:", len(allRepos))
 		break
 	}
 
@@ -60,34 +61,17 @@ func NewGithubRepo(r *github.Repository, absoluteStorageDirPath string) (*Github
 	}
 
 	directory := strings.TrimSuffix(absoluteStorageDirPath, "/") + "/" + *r.FullName
-	fmt.Println("cloneing:", *r.CloneURL)
-	/*_, err := git.PlainClone(directory, false, &git.CloneOptions{
-		// The intended use of a GitHub personal access token is in replace of your password
-		// because access tokens can easily be revoked.
-		// https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/
-		Auth: &http.BasicAuth{
-			Username: "whatever", // yes, this can be anything except an empty string
-			Password: "05303fba719627b0853c53b93a24de679938ef5f",
-		},
-		URL:  *r.CloneURL,
-		Tags: git.NoTags,
-		//Progress: os.Stdout,
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "creating new repo failed")
-	}*/
-	cmd := exec.Command("git", "clone", *r.CloneURL, absoluteStorageDirPath+"/"+*r.FullName)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	url := "https://" + GHAccessToken + "@" + strings.TrimPrefix(*r.GitURL, "git://")
+	//fmt.Println("Cloning:", url)
+	cmd := exec.Command("git", "clone", "--depth=1", url, directory)
+	//cmd.Stdout = os.Stdout
+	//cmd.Stderr = os.Stderr
 	err := cmd.Run()
-	if err != nil {
-		log.Fatalf("cmd.Run() failed with %s\n", err)
-	}
-
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, err
 	}
+	os.RemoveAll(directory + "/.git")
 
 	return &GithubRepo{
 		cloneAbsPath: directory,

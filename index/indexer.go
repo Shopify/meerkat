@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -18,8 +17,6 @@ import (
 
 	"os"
 )
-
-const filePatternsNotToIndex = `/.git/`
 
 type FileSearchResult struct {
 	filePath string
@@ -36,6 +33,7 @@ type indexer struct {
 	masterIndexpath string
 	mergeMutex      sync.Mutex
 	matchMutex      sync.Mutex
+	masterExists    bool
 }
 
 func NewIndexer(masterIndexFilePath string) Indexer {
@@ -226,7 +224,7 @@ func (i *indexer) Index(r repos.Repo) error {
 	ixWriter.AddPaths([]string{r.DiskPath()})
 	if err := godirwalk.Walk(r.DiskPath(), &godirwalk.Options{
 		Callback: func(osPathname string, de *godirwalk.Dirent) error {
-			if !de.IsRegular() || strings.Contains(osPathname, filePatternsNotToIndex) {
+			if !de.IsRegular() {
 				return nil
 			}
 			ixWriter.AddFile(osPathname)
@@ -241,15 +239,21 @@ func (i *indexer) Index(r repos.Repo) error {
 	i.mergeMutex.Lock()
 	defer i.mergeMutex.Unlock()
 
-	if _, err := os.Stat(i.masterIndexpath); err == nil {
+	if i.masterExists {
 		//if master DOES exists
 		index.Merge(indexFullpath+"@", i.masterIndexpath, indexFullpath)
-	} else {
-		index.Merge(indexFullpath+"@", indexFullpath, indexFullpath)
+	} else { //check again
+		if _, err := os.Stat(i.masterIndexpath); err == nil {
+			//if master DOES exists
+			index.Merge(indexFullpath+"@", i.masterIndexpath, indexFullpath)
+		} else {
+			index.Merge(indexFullpath+"@", indexFullpath, indexFullpath)
+		}
 	}
 	if err := os.Rename(indexFullpath+"@", i.masterIndexpath); err != nil {
 		return errors.Wrapf(err, "failed to rename %s to %s \n", indexFullpath+"@", i.masterIndexpath)
 	}
+	i.masterExists = true
 
 	return nil
 }
