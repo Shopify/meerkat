@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/codesearch/index"
-	"github.com/google/codesearch/regexp"
+	"github.com/Shopify/meerkat/repos"
+	"github.com/bshafiee/codesearch/index"
+	"github.com/bshafiee/codesearch/regexp"
 	"github.com/karrick/godirwalk"
-	"github.com/meerkat/repos"
 	"github.com/pkg/errors"
 
 	"os"

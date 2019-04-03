@@ -1,6 +1,6 @@
 package search
 
-import "github.com/google/codesearch/regexp"
+import "github.com/bshafiee/codesearch/regexp"
 
 type FileSearcher interface {
 	// searches a regex inside filepath and writes results in resChan, returns number of hits

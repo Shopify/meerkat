@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/google/codesearch/regexp"
+	"github.com/bshafiee/codesearch/regexp"
 )
 
 func file(g *regexp.Grep, name string) {

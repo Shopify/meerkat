@@ -2,6 +2,17 @@
 
 
 [[projects]]
+  branch = "master"
+  digest = "1:30a6e29e93e82e8dacc73781b20679cd24c67bd0f5105bf396e948af56a3a577"
+  name = "github.com/bshafiee/codesearch"
+  packages = [
+    "index",
+    "regexp",
+  ]
+  pruneopts = "UT"
+  revision = "f089c2f15893ed625278f1165a254fd5f37c844d"
+
+[[projects]]
   digest = "1:318f1c959a8a740366fce4b1e1eb2fd914036b4af58fbd0a003349b305f118ad"
   name = "github.com/golang/protobuf"
   packages = ["proto"]
@@ -10,13 +21,9 @@
   version = "v1.3.1"
 
 [[projects]]
-  digest = "1:182448a87b7664e4ba839a53515fe858c1b7248b36dab488c61fe897d0c86843"
+  digest = "1:f5963c62a25c585d7a375098fb2f334ec52c0429ad8f13ab2fac66c7bd752dcb"
   name = "github.com/google/codesearch"
-  packages = [
-    "index",
-    "regexp",
-    "sparse",
-  ]
+  packages = ["sparse"]
   pruneopts = "UT"
   revision = "4fe90b597ae534f90238f82c7b5b1bb6d6d52dff"
   version = "v1.1.0"
@@ -73,15 +80,7 @@
     "internal",
   ]
   pruneopts = "UT"
-  revision = "c85d3e98c914e3a33234ad863dcbff5dbc425bb8"
-
-[[projects]]
-  branch = "master"
-  digest = "1:75515eedc0dc2cb0b40372008b616fa2841d831c63eedd403285ff286c593295"
-  name = "golang.org/x/sync"
-  packages = ["semaphore"]
-  pruneopts = "UT"
-  revision = "e225da77a7e68af35c70ccbf71af2b83e6acac3c"
+  revision = "9f3314589c9a9136388751d9adae6b0ed400978a"
 
 [[projects]]
   digest = "1:6eb6e3b6d9fffb62958cf7f7d88dbbe1dd6839436b0802e194c590667a40412a"
@@ -103,13 +102,12 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/google/codesearch/index",
-    "github.com/google/codesearch/regexp",
+    "github.com/bshafiee/codesearch/index",
+    "github.com/bshafiee/codesearch/regexp",
     "github.com/google/go-github/github",
     "github.com/karrick/godirwalk",
     "github.com/pkg/errors",
     "golang.org/x/oauth2",
-    "golang.org/x/sync/semaphore",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

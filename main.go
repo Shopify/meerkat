@@ -4,9 +4,10 @@ import (
 	//"runtime/pprof"
 	//"context"
 	"fmt"
+	indexing "github.com/Shopify/meerkat/index"
+	"github.com/Shopify/meerkat/repos"
 	"github.com/google/go-github/github"
-	indexing "github.com/meerkat/index"
-	"github.com/meerkat/repos"
+	"net/http"
 	//"golang.org/x/sync/semaphore"
 	"io/ioutil"
 	"log"
@@ -121,6 +122,8 @@ func indexGH() {
 }
 
 func main() {
+	http.HandleFunc("/services/ping", func(w http.ResponseWriter, r *http.Request) { fmt.Fprintf(w, "OK") })
+	log.Fatal(http.ListenAndServe(":8000", nil))
 	/*f, err := os.Create("profile.cpu")
 	if err != nil {
 		log.Fatal(err)
@@ -132,5 +135,5 @@ func main() {
 	}()*/
 	//index()
 	//search()
-	indexGH()
+	//indexGH()
 }
