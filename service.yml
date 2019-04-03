@@ -1,0 +1,6 @@
+# https://services.shopify.io/services/meerkat/staging
+org_line: 
+owners:
+- Shopify/privacy
+staging:
+  classification: tier4
